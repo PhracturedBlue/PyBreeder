@@ -109,18 +109,23 @@ def breed_python(fn, main, compress=False, gtk_images=False):
     bn = '%s.%s' % (pbn, bn)
     path = path[:-(len(pbn)+1)]
 
+  parts = bn.split('.')
   text = ['__FILES[".SELF/%s"] = %s' % (fn, pre)]
   text.extend(lines)
   text.extend([
     post,
-    'm = sys.modules["%s"] = imp.new_module("%s")' % (bn, bn),
+    'if "%s" not in sys.modules:' % (bn),
+    '    sys.modules["%s"] = imp.new_module("%s")' % (bn, bn),
+    'm = sys.modules["%s"] ' % (bn),
+    'm.__package__ = "%s"' % (parts[0]),
     'm.__file__ = "%s"' % (fn, ),
     'm.open = __comb_open'
   ])
   if gtk_images:
     text.append('m.gtk_open_image = gtk_open_image')
   if '.' in bn:
-    parts = bn.split('.')
+    text.append('if "%s" not in sys.modules:' % ('.'.join(parts[:-1])))
+    text.append('    sys.modules["%s"] = imp.new_module("%s")' % ('.'.join(parts[:-1]), '.'.join(parts[:-1])))
     text.append(('sys.modules["%s"].__setattr__("%s", m)'
                  ) % ('.'.join(parts[:-1]), parts[-1]))
   text.extend([
